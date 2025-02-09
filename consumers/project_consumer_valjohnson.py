@@ -131,7 +131,7 @@ def process_message(message: str) -> None:
             total_messages += 1 #Increment total message count
 
             # Log the updated counts
-            logger.info(f"Total messages: {total_messages}, {tracked_author} count: {author_counts[tracked_author]}")
+            logger.info(f"Total messages: {total_messages}, Current Author Counts: {dict(author_counts)}")
 
             # Update the chart
             update_chart()
