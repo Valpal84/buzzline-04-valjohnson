@@ -57,24 +57,16 @@ def update_chart():
     """Update the live chart with the latest author message percentages."""
     ax.clear()
 
-    # Take a snapshot to avoid data modification issues
-    authors_snapshot = list(author_counts.keys())
-    counts_snapshot = list(author_counts.values())
-
-    if len(authors_snapshot) != len(counts_snapshot):
-        logger.error(f"Mismatch: {len(authors_snapshot)} authors vs {len(counts_snapshot)} counts")
-        return  # Skip update if lengths mismatch
-
     # Store the current total message count
     message_indices.append(total_messages)
 
-    # Calculate and update percentage for each author
-    for author in authors_snapshot:
-        percentage = (author_counts[author] / total_messages) * 100 if total_messages > 0 else 0
-        percentage_history[author].append(percentage)
+    # Ensure all author lists are the same length
+    for author in author_counts.keys():
+        if len(percentage_history[author]) < len(message_indices):
+            percentage_history[author].append((author_counts[author] / total_messages) * 100 if total_messages > 0 else 0)
 
     # Plot each author's percentage over time
-    for author in authors_snapshot:
+    for author in author_counts.keys():
         ax.plot(message_indices, percentage_history[author], marker="^", linestyle="--", color="green", label=author)
 
     ax.set_xlabel("Total Messages Received")
@@ -85,6 +77,7 @@ def update_chart():
     plt.tight_layout()
     plt.draw()
     plt.pause(0.01)  # Pause for real-time update
+
 
 
 #####################################
