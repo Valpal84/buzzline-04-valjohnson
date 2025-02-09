@@ -1,4 +1,5 @@
-# buzzline-04-case
+# buzzline-04-valjohnson
+
 
 We can analyze and visualize different types of streaming data as the information arrives.
 
@@ -66,13 +67,13 @@ Windows:
 
 ```shell
 .venv\Scripts\activate
-py -m producers.basic_json_producer_case
+py -m producers.basic_json_producer_valjohnson
 ```
 
 Mac/Linux:
 ```zsh
 source .venv/bin/activate
-python3 -m producers.basic_json_producer_case
+python3 -m producers.basic_json_producer_valjohnson
 ```
 
 ### Consumer Terminal

@@ -44,6 +44,10 @@ logger.info(f"Data file: {DATA_FILE}")
 #####################################
 
 author_counts = defaultdict(int)
+total_messages = 0 #Track total messages
+author_percentage_history = [] #Store percentage over time
+message_indices = [] #Track message count over time
+tracked_author = "Eve"  #Select tracked author here
 
 #####################################
 # Set up live visuals
@@ -63,24 +67,25 @@ def update_chart():
     # Clear the previous chart
     ax.clear()
 
-    # Get the authors and counts from the dictionary
-    authors_list = list(author_counts.keys())
-    counts_list = list(author_counts.values())
+    # Calculate percentage of tracked author's messages
+    if total_messages >0:
+        percentage = (author_counts[tracked_author]/total_messages) *100
+    else:
+        percentage = 0
 
-    # Create a bar chart using the bar() method.
-    # Pass in the x list, the y list, and the color
-    ax.bar(authors_list, counts_list, color="green")
+    #Store history for the line graph
+    author_percentage_history.append(percentage)
+    message_indices.append(total_messages)
+
+    #Plot the line graph
+    ax.plot(message_indices, author_percentage_history, marker="o", linestyle="-", color="green", label=f"% of {tracked_author}")
+
 
     # Use the built-in axes methods to set the labels and title
-    ax.set_xlabel("Authors")
-    ax.set_ylabel("Message Counts")
-    ax.set_title("Basic Real-Time Author Message Counts")
-
-    # Use the set_xticklabels() method to rotate the x-axis labels
-    # Pass in the x list, specify the rotation angle is 45 degrees,
-    # and align them to the right
-    # ha stands for horizontal alignment
-    ax.set_xticklabels(authors_list, rotation=45, ha="right")
+    ax.set_xlabel("Total Messages Received")
+    ax.set_ylabel(f"Percentage of Messages from {tracked_author}")
+    ax.set_title(f"Live Percentage of {tracked_author}'s Messages Over Time")
+    ax.legend()
 
     # Use the tight_layout() method to automatically adjust the padding
     plt.tight_layout()
@@ -104,6 +109,8 @@ def process_message(message: str) -> None:
     Args:
         message (str): The JSON message as a string.
     """
+    global total_messages
+    
     try:
         # Log the raw message for debugging
         logger.debug(f"Raw message: {message}")
@@ -122,9 +129,10 @@ def process_message(message: str) -> None:
 
             # Increment the count for the author
             author_counts[author] += 1
+            total_messages += 1 #Increment total message count
 
             # Log the updated counts
-            logger.info(f"Updated author counts: {dict(author_counts)}")
+            logger.info(f"Total messages: {total_messages}, {tracked_author} count: {author_counts[tracked_author]}")
 
             # Update the chart
             update_chart()
