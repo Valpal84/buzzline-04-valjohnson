@@ -1,7 +1,7 @@
 """
-basic_json_consumer_valjohnson.py
+basic_json_consumer.py
 
-Read a JSON-formatted file as it is being written. 
+Reads a JSON-formatted file as it is being written and visualizes author percentages.
 
 Example JSON message:
 {"message": "I just saw a movie! It was amazing.", "author": "Eve"}
@@ -11,21 +11,14 @@ Example JSON message:
 # Import Modules
 #####################################
 
-# Import packages from Python Standard Library
 import json
-import os # for file operations
-import sys # to exit early
+import os
+import sys
 import time
 import pathlib
-from collections import defaultdict  # data structure for counting author occurrences
-
-# IMPORTANT
-# Import Matplotlib.pyplot for live plotting
+from collections import defaultdict
 import matplotlib.pyplot as plt
-
-# Import functions from local modules
-from utils.utils_logger import logger
-
+from utils.utils_logger import logger  # Ensure this logger is correctly set up
 
 #####################################
 # Set up Paths - read from the file the producer writes
@@ -43,66 +36,55 @@ logger.info(f"Data file: {DATA_FILE}")
 # Set up data structures
 #####################################
 
-author_counts = defaultdict(int)
-total_messages = 0 #Track total messages
-percentage_history = defaultdict(list) #Store percentage per author over time
-message_indices = [] #Track message count over time
-
+author_counts = defaultdict(int)  # Track the count of messages per author
+total_messages = 0  # Total message count
+percentage_history = defaultdict(list)  # Store percentage of each author over time
+message_indices = []  # Track total messages over time
 
 #####################################
-# Set up live visuals
+# Set up live visualization
 #####################################
 
 fig, ax = plt.subplots()
-plt.ion()  # Turn on interactive mode for live updates
+plt.ion()  # Enable interactive mode for live updates
 
 #####################################
-# Define an update chart function for live plotting
-# This will get called every time a new message is processed
+# Update Chart Function
 #####################################
 
 
 def update_chart():
-    """Update the live chart with the latest author counts."""
-    # Clear the previous chart
+    """Update the live chart with the latest author message percentages."""
     ax.clear()
 
-    #Take a snapshot of author counts to prevent changes mid-update
+    # Take a snapshot to avoid data modification issues
     authors_snapshot = list(author_counts.keys())
     counts_snapshot = list(author_counts.values())
 
-    #Ensure both lists have the same length before plotting
     if len(authors_snapshot) != len(counts_snapshot):
         logger.error(f"Mismatch: {len(authors_snapshot)} authors vs {len(counts_snapshot)} counts")
-        return #skip this update if lengths don't match
-    
-    #Store the current message count
+        return  # Skip update if lengths mismatch
+
+    # Store the current total message count
     message_indices.append(total_messages)
 
-    #Calculate percentage for all authors
-    for author, count in author_counts.items():
-        percentage = (count / total_messages) * 100 if total_messages > 0 else 0
+    # Calculate and update percentage for each author
+    for author in authors_snapshot:
+        percentage = (author_counts[author] / total_messages) * 100 if total_messages > 0 else 0
         percentage_history[author].append(percentage)
 
+    # Plot each author's percentage over time
+    for author in authors_snapshot:
+        ax.plot(message_indices, percentage_history[author], marker="^", linestyle="--", color="green", label=author)
 
-    #Plot the line graph
-    ax.plot(message_indices, percentage_history[author], marker="^", linestyle="-", color="green", label=author)
-
-
-    # Use the built-in axes methods to set the labels and title
     ax.set_xlabel("Total Messages Received")
     ax.set_ylabel("Percentage of Messages per Author")
     ax.set_title("Live Author Message Distribution Over Time")
     ax.legend()
 
-    # Use the tight_layout() method to automatically adjust the padding
     plt.tight_layout()
-
-    # Draw the chart
     plt.draw()
-
-    # Pause briefly to allow some time for the chart to render
-    plt.pause(0.01)
+    plt.pause(0.01)  # Pause for real-time update
 
 
 #####################################
@@ -120,33 +102,20 @@ def process_message(message: str) -> None:
     global total_messages
 
     try:
-        # Log the raw message for debugging
-        logger.debug(f"Raw message: {message}")
-
-        # Parse the JSON string into a Python dictionary
-        message_dict: dict = json.loads(message)
+        # Parse the JSON string into a dictionary
+        message_dict = json.loads(message)
        
-        # Ensure the processed JSON is logged for debugging
-        logger.info(f"Processed JSON message: {message_dict}")
-
-        # Ensure it's a dictionary before accessing fields
         if isinstance(message_dict, dict):
-            # Extract the 'author' field from the Python dictionary
-            author = message_dict.get("author", "unknown")
-            logger.info(f"Message received from author: {author}")
+            author = message_dict.get("author", "unknown")  # Default to "unknown" if missing
 
-            # Increment the count for the author
+            # Increment author count and total messages
             author_counts[author] += 1
-            total_messages += 1 #Increment total message count
+            total_messages += 1
 
-            # Log the updated counts
             logger.info(f"Total messages: {total_messages}, Current Author Counts: {dict(author_counts)}")
 
-            # Update the chart
+            # Update the chart with new data
             update_chart()
-
-            # Log the updated chart
-            logger.info(f"Chart updated successfully for message: {message}")
 
         else:
             logger.error(f"Expected a dictionary but got: {type(message_dict)}")
@@ -164,39 +133,28 @@ def process_message(message: str) -> None:
 
 def main() -> None:
     """
-    Main entry point for the consumer.
-    - Monitors a file for new messages and updates a live chart.
+    Main function to monitor a file for new messages and update the live chart.
     """
-
     logger.info("START consumer.")
 
-    # Verify the file we're monitoring exists if not, exit early
     if not DATA_FILE.exists():
         logger.error(f"Data file {DATA_FILE} does not exist. Exiting.")
         sys.exit(1)
 
     try:
-        # Try to open the file and read from it
         with open(DATA_FILE, "r") as file:
+            file.seek(0, os.SEEK_END)  # Move to the end of the file
 
-            # Move the cursor to the end of the file
-            file.seek(0, os.SEEK_END)
             print("Consumer is ready and waiting for new JSON messages...")
 
             while True:
-                # Read the next line from the file
                 line = file.readline()
 
-                # If we strip whitespace from the line and it's not empty
-                if line.strip():  
-                    # Process this new message
+                if line.strip():
                     process_message(line)
                 else:
-                    # otherwise, wait a half second before checking again
                     logger.debug("No new messages. Waiting...")
-                    delay_secs = 0.5 
-                    time.sleep(delay_secs) 
-                    continue 
+                    time.sleep(0.5)  # Short delay before checking again
 
     except KeyboardInterrupt:
         logger.info("Consumer interrupted by user.")
@@ -209,7 +167,7 @@ def main() -> None:
 
 
 #####################################
-# Conditional Execution
+# Run the Consumer
 #####################################
 
 if __name__ == "__main__":
