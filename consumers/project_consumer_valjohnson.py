@@ -33,7 +33,7 @@ from utils.utils_logger import logger
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 DATA_FOLDER = PROJECT_ROOT.joinpath("data")
-DATA_FILE = DATA_FOLDER.joinpath("buzz_live.json")
+DATA_FILE = DATA_FOLDER.joinpath("project_live.json")
 
 logger.info(f"Project root: {PROJECT_ROOT}")
 logger.info(f"Data folder: {DATA_FOLDER}")
@@ -67,6 +67,15 @@ def update_chart():
     # Clear the previous chart
     ax.clear()
 
+    #Take a snapshot of author counts to prevent changes mid-update
+    authors_snapshot = list(author_counts.keys())
+    counts_snapshot = list(author_counts.values())
+
+    #Ensure both lists have the same length before plotting
+    if len(authors_snapshot) != len(counts_snapshot):
+        logger.error(f"Mismatch: {len(authors_snapshot)} authors vs {len(counts_snapshot)} counts")
+        return #skip this update if lengths don't match
+    
     #Store the current message count
     message_indices.append(total_messages)
 
