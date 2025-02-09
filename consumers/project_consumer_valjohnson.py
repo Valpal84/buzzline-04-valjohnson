@@ -45,9 +45,9 @@ logger.info(f"Data file: {DATA_FILE}")
 
 author_counts = defaultdict(int)
 total_messages = 0 #Track total messages
-author_percentage_history = [] #Store percentage over time
+percentage_history = defaultdict(list) #Store percentage per author over time
 message_indices = [] #Track message count over time
-tracked_author = "Eve"  #Select tracked author here
+
 
 #####################################
 # Set up live visuals
@@ -67,24 +67,23 @@ def update_chart():
     # Clear the previous chart
     ax.clear()
 
-    # Calculate percentage of tracked author's messages
-    if total_messages >0:
-        percentage = (author_counts[tracked_author]/total_messages) *100
-    else:
-        percentage = 0
-
-    #Store history for the line graph
-    author_percentage_history.append(percentage)
+    #Store the current message count
     message_indices.append(total_messages)
 
+    #Calculate percentage for all authors
+    for author, count in author_counts.items():
+        percentage = (count / total_messages) * 100 if total_messages > 0 else 0
+        percentage_history[author].append(percentage)
+
+
     #Plot the line graph
-    ax.plot(message_indices, author_percentage_history, marker="o", linestyle="-", color="green", label=f"% of {tracked_author}")
+    ax.plot(message_indices, percentage_history[author], marker="^", linestyle="-", color="green", label=author)
 
 
     # Use the built-in axes methods to set the labels and title
     ax.set_xlabel("Total Messages Received")
-    ax.set_ylabel(f"Percentage of Messages from {tracked_author}")
-    ax.set_title(f"Live Percentage of {tracked_author}'s Messages Over Time")
+    ax.set_ylabel("Percentage of Messages per Author")
+    ax.set_title("Live Author Message Distribution Over Time")
     ax.legend()
 
     # Use the tight_layout() method to automatically adjust the padding
@@ -110,7 +109,7 @@ def process_message(message: str) -> None:
         message (str): The JSON message as a string.
     """
     global total_messages
-    
+
     try:
         # Log the raw message for debugging
         logger.debug(f"Raw message: {message}")
